@@ -53,9 +53,11 @@ class OllamaService
      * @param int $age
      * @return array|null
      */
-    public function generateTopics(int $age): ?array
+    public function generateTopics(int $age, ?string $customPrompt = null): ?array
     {
-        $prompt = "Sugiere 3 temas diversos y atractivos de comprensión lectora adecuados para un niño de {$age} años. Proporciona solo los temas, uno por línea, sin numeración ni ningún otro texto. Asegúrate de que sean distintos y apropiados para la edad, y que la respuesta esté íntegramente en español.";
+        $defaultPrompt = "Sugiere 3 temas diversos y atractivos de comprensión lectora adecuados para un niño de {$age} años. Proporciona solo los temas, uno por línea, sin numeración ni ningún otro texto. Asegúrate de que sean distintos y apropiados para la edad, y que la respuesta esté íntegramente en español.";
+
+        $prompt = $customPrompt ?? $defaultPrompt;
 
         $messages = [
             ['role' => 'system', 'content' => 'You are a helpful assistant that suggests reading comprehension topics.'],
@@ -79,24 +81,25 @@ class OllamaService
      * @param string $topic
      * @return array|null ['text' => '...', 'questions' => ['...', '...', ...]]
      */
-        public function generateTask(int $age, string $topic): ?array
-        {
-            $prompt = "Genera un texto de comprensión lectora y 3-5 preguntas para un niño de {$age} años sobre el tema: '{$topic}'.\n"
-                    . "Para cada pregunta, proporciona 4 alternativas y la respuesta correcta. La respuesta debe estar íntegramente en español.\n\n"
-                    . "Formatea la salida estrictamente como un objeto JSON con las siguientes claves:\n"
-                    . "{\n"
-                    . "  \"text\": \"[El texto de lectura aquí]\",\n"
-                    . "  \"questions\": [\n"
-                    . "    {\n"
-                    . "      \"question\": \"[Pregunta 1]\",\n"
-                    . "      \"alternatives\": [\"[Alternativa A]\", \"[Alternativa B]\", \"[Alternativa C]\", \"[Alternativa D]\"],\n"
-                    . "      \"correct_answer\": \"[Alternativa Correcta]\"\n"
-                    . "    },\n"
-                    . "    // ... más preguntas\n"
-                    . "  ]\n"
-                    . "}\n\n"
-                    . "Asegúrate de que el texto sea atractivo y las preguntas se relacionen directamente con el texto y sean apropiadas para la edad.";
-    
+            public function generateTask(int $age, string $topic, ?string $customPrompt = null): ?array
+            {
+                $defaultPrompt = "Genera un texto de comprensión lectora y 3-5 preguntas para un niño de {$age} años sobre el tema: '{$topic}'.\n"
+                               . "Para cada pregunta, proporciona 4 alternativas y la respuesta correcta. La respuesta debe estar íntegramente en español.\n\n"
+                               . "Formatea la salida estrictamente como un objeto JSON con las siguientes claves:\n"
+                               . "{\n"
+                               . "  \"text\": \"[El texto de lectura aquí]\",\n"
+                               . "  \"questions\": [\n"
+                               . "    {\n"
+                               . "      \"question\": \"[Pregunta 1]\",\n"
+                               . "      \"alternatives\": [\"[Alternativa A]\", \"[Alternativa B]\", \"[Alternativa C]\", \"[Alternativa D]\"],\n"
+                               . "      \"correct_answer\": \"[Alternativa Correcta]\"\n"
+                               . "    },\n"
+                               . "    // ... más preguntas\n"
+                               . "  ]\n"
+                               . "}\n\n"
+                               . "Asegúrate de que el texto sea atractivo y las preguntas se relacionen directamente con el texto y sean apropiadas para la edad.";
+        
+                $prompt = $customPrompt ?? $defaultPrompt;    
             $messages = [
                 ['role' => 'system', 'content' => 'Eres un asistente útil que genera tareas de comprensión lectora en español.'],
                 ['role' => 'user', 'content' => $prompt],

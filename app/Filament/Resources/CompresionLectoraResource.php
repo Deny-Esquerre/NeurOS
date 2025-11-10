@@ -34,6 +34,7 @@ class CompresionLectoraResource extends Resource
                 Forms\Components\Section::make('Generación de Tarea con IA')
                     ->description('Utiliza la IA para generar temas y tareas de comprensión lectora.')
                     ->columns(2)
+                    ->visible(fn (string $operation): bool => $operation === 'create')
                     ->schema([
                         Forms\Components\Select::make('age')
                             ->label('Edad del Niño')
