@@ -15,6 +15,7 @@ class Task extends Model
         'category',
         'questions',
         'game_link', // New field
+        'preview_image_url',
         'is_published',
     ];
 

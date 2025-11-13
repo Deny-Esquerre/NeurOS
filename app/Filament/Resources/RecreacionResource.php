@@ -24,26 +24,7 @@ class RecreacionResource extends Resource
 
     public static function shouldRegisterNavigation(): bool
     {
-        // Get total number of children with 'hijo' role
-        $totalChildren = User::role('hijo')->count();
-
-        // Get total number of published tasks
-        $totalPublishedTasks = Task::where('is_published', true)->count();
-
-        // If there are no children or no published tasks, the condition is met (or not applicable)
-        // We assume if there are no children or no published tasks, recreation is always available.
-        // Adjust this logic if a stricter interpretation is needed.
-        if ($totalChildren === 0 || $totalPublishedTasks === 0) {
-            return true;
-        }
-
-        // Check if all published tasks have been completed by all children
-        // This means, for every published task, its completion percentage must be 100%
-        $allTasksCompletedByAllChildren = Task::where('is_published', true)
-            ->get()
-            ->every(fn (Task $task) => $task->completion_percentage >= 100); // Use >= 100 for floating point comparison safety
-
-        return $allTasksCompletedByAllChildren;
+        return true;
     }
 
     public static function getEloquentQuery(): Builder

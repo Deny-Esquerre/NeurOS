@@ -2,6 +2,8 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Pages\Auth\CustomLogin;
+use App\Http\Middleware\RedirectIfCannotAccessPanel;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
@@ -9,7 +11,6 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use App\Filament\Pages\Auth\Login;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -24,7 +25,7 @@ class PsicologoPanelProvider extends PanelProvider
         return $panel
             ->id('psicologo')
             ->path('psicologo')
-            ->login()
+            ->login(CustomLogin::class)
             ->authGuard('web')
             ->homeUrl('/psicologo')
             ->colors([
@@ -56,6 +57,7 @@ class PsicologoPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                RedirectIfCannotAccessPanel::class, // Add this line
             ])
             ->authMiddleware([
                 \App\Http\Middleware\PsicologoAuthMiddleware::class,

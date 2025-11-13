@@ -35,16 +35,28 @@ class TaskResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->label('Nombre')
                     ->required(),
-                Forms\Components\Textarea::make('description')
+                Forms\Components\RichEditor::make('description')
                     ->label('Descripción')
                     ->columnSpanFull(),
-                Forms\Components\Toggle::make('is_completed')
-                    ->label('Completada')
+                Forms\Components\TextInput::make('game_link')
+                    ->label('Enlace del Juego')
+                    ->url()
+                    ->nullable(),
+                Forms\Components\FileUpload::make('preview_image_url')
+                    ->label('Imagen de Previsualización')
+                    ->image()
+                    ->directory('task-previews') // Almacenar en storage/app/public/task-previews
+                    ->nullable(),
+                Forms\Components\Select::make('category')
+                    ->label('Categoría')
+                    ->options([
+                        'compresion_lectora' => 'Comprensión Lectora',
+                        'matematicas' => 'Matemáticas',
+                        'juegos_de_recreacion' => 'Juegos de Recreación',
+                    ])
                     ->required(),
-                Forms\Components\Select::make('child_id')
-                    ->relationship('child', 'name', fn (Builder $query) => $query->role('hijo'))
-                    ->label('Hijo')
-                    ->nullable()
+                Forms\Components\Toggle::make('is_published')
+                    ->label('Publicada')
                     ->required(),
             ]);
     }
@@ -56,13 +68,12 @@ class TaskResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nombre')
                     ->searchable(),
-                Tables\Columns\IconColumn::make('is_completed')
-                    ->label('Completada')
+                Tables\Columns\TextColumn::make('category')
+                    ->label('Categoría')
+                    ->searchable(),
+                Tables\Columns\IconColumn::make('is_published')
+                    ->label('Publicada')
                     ->boolean(),
-                Tables\Columns\TextColumn::make('child.name')
-                    ->label('Hijo')
-                    ->searchable()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -73,11 +84,16 @@ class TaskResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('parent')
-                    ->relationship('child.parent', 'name', fn (Builder $query) => $query->role('padre'))
-                    ->label('Padre')
-                    ->preload()
-                    ->searchable(),
+                Tables\Filters\SelectFilter::make('category')
+                    ->label('Categoría')
+                    ->options([
+                        'compresion_lectora' => 'Comprensión Lectora',
+                        'matematicas' => 'Matemáticas',
+                        'juegos_de_recreacion' => 'Juegos de Recreación',
+                    ]),
+                Tables\Filters\TernaryFilter::make('is_published')
+                    ->label('Publicada')
+                    ->boolean(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

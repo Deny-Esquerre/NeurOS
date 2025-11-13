@@ -44,6 +44,10 @@ class LoginController extends Controller
             return redirect()->intended('/psicologo');
         }
 
+        if ($user->hasRole('padre')) {
+            return redirect()->intended('/padre');
+        }
+
         return redirect()->intended($this->redirectTo);
     }
 }

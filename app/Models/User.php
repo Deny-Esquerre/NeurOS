@@ -2,18 +2,26 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, Notifiable, HasRoles, HasApiTokens; // Add HasApiTokens here
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return $this->hasRole($panel->getId());
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -70,9 +78,11 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     // Tareas asignadas a un niño
-    public function tasks(): HasMany
+    public function tasks(): BelongsToMany
     {
-        return $this->hasMany(Task::class, 'child_id');
+        return $this->belongsToMany(Task::class, 'task_completions', 'user_id', 'task_id')
+                    ->withPivot('completed_at', 'answers')
+                    ->withTimestamps();
     }
 
     // Relación Padre-Psicólogo (un padre/usuario tiene un psicólogo)

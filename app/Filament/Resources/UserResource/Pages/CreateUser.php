@@ -10,8 +10,8 @@ class CreateUser extends CreateRecord
 {
     protected static string $resource = UserResource::class;
 
-    protected function afterCreate(): void
-    {
-        $this->record->sendEmailVerificationNotification();
-    }
+    // protected function afterCreate(): void
+    // {
+    //     $this->record->sendEmailVerificationNotification();
+    // }
 }

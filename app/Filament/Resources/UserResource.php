@@ -49,7 +49,11 @@ class UserResource extends Resource
                     ->dehydrated(fn (?string $state): bool => filled($state))
                     ->required(fn (string $operation): bool => $operation === 'create'),
                 Select::make('roles')
-                    ->relationship('roles', 'name')
+                    ->multiple()
+                    ->relationship(titleAttribute: 'name')
+                    ->options(
+                        \Spatie\Permission\Models\Role::all()->mapWithKeys(fn ($role) => [$role->id => ucfirst($role->name)])
+                    )
                     ->preload()
                     ->live(),
                 Select::make('parent_id')
@@ -60,19 +64,24 @@ class UserResource extends Resource
                     ->preload()
                     ->visible(function (\Filament\Forms\Get $get) {
                         $roleIds = $get('roles');
-
-                        if (empty($roleIds)) {
-                            return false;
-                        }
-
-                        if (! is_array($roleIds)) {
-                            $roleIds = [$roleIds];
-                        }
-
-                        $psicologoRoleId = Role::where('name', 'psicologo')->value('id');
-
-                        return in_array($psicologoRoleId, $roleIds);
-                    })
+                        if (empty($roleIds)) return false;
+                        if (!is_array($roleIds)) $roleIds = [$roleIds];
+                        $hijoRoleId = Role::where('name', 'Hijo')->value('id'); // Usar 'Hijo' capitalizado
+                        return in_array($hijoRoleId, $roleIds);
+                    }),
+                Select::make('psicologo_id')
+                    ->relationship('psicologo', 'name', fn (Builder $query) => $query->role('psicologo'))
+                    ->label('Psicólogo')
+                    ->nullable()
+                    ->searchable()
+                    ->preload()
+                    ->visible(function (\Filament\Forms\Get $get) {
+                        $roleIds = $get('roles');
+                        if (empty($roleIds)) return false;
+                        if (!is_array($roleIds)) $roleIds = [$roleIds];
+                        $hijoRoleId = Role::where('name', 'Hijo')->value('id'); // Usar 'Hijo' capitalizado
+                        return in_array($hijoRoleId, $roleIds);
+                    }),
             ]);
     }
 

@@ -17,6 +17,10 @@ class PostLoginRedirectController extends Controller
             if (Auth::user()->hasRole('psicologo')) {
                 return redirect()->intended('/psicologo');
             }
+
+            if (Auth::user()->hasRole('padre')) {
+                return redirect()->intended('/padre');
+            }
         }
 
         return redirect()->intended('/');
