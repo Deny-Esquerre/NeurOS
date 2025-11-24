@@ -13,7 +13,7 @@ use App\Filament\Widgets\TaskCompletionsChart;
 
 class CustomDashboard extends BaseDashboard
 {
-    protected static ?string $title = 'Dashboard Principal';
+    protected static ?string $title = 'Dashboard';
 
     public function getWidgets(): array
     {

@@ -8,21 +8,29 @@ use Illuminate\Support\Facades\Auth; // Add this line to get the authenticated u
 
 class HeartRateDisplay extends Component
 {
-    public $latestBpm = 'N/A'; // Public property to display the BPM
+    public $latestBpm = 'N/A';
+    public $isVisible = false; // Add this property
 
-    // Listen for the HeartRateUpdated event
+    // Listen for the HeartRateUpdated event or a device connected event
     public function getListeners()
     {
-        // Listen to a private channel specific to the authenticated user
         return [
             "echo-private:heart-rate." . Auth::id() . ",.heart-rate-updated" => 'updateHeartRate',
+            'device-connected' => 'showHeartRateDisplay', // Listen for this event
         ];
     }
 
     public function updateHeartRate(array $event)
     {
         $this->latestBpm = $event['heartRateData']['bpm'];
+        $this->isVisible = true; // Ensure visibility when heart rate data comes in
     }
+
+    public function showHeartRateDisplay()
+    {
+        $this->isVisible = true;
+    }
+
 
     public function render()
     {
