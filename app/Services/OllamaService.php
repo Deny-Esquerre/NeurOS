@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Http;
 class OllamaService
 {
     protected string $baseUrl;
-    protected string $model = 'llama3.1:8b'; // Default Ollama model
+    protected string $model = 'gemma:2b'; // Default Ollama model
 
     public function __construct()
     {
