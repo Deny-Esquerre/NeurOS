@@ -110,6 +110,7 @@ class CompresionLectoraResource extends Resource
                                 ->icon('heroicon-o-document-text')
                                 ->color('success')
                                 ->action(function (Forms\Get $get, \Livewire\Component $livewire) {
+                                    set_time_limit(300); // Set PHP execution time limit to 5 minutes
                                     $age = $get('age');
                                     $topic = $get('custom_topic') ?: $get('selected_topic');
                                     $userId = Auth::id();
@@ -123,16 +124,49 @@ class CompresionLectoraResource extends Resource
                                         return;
                                     }
 
-                                    // Set generating state and show notification
+                                    // Set generating state
                                     $livewire->isGenerating = true;
-                                    \Filament\Notifications\Notification::make()
-                                        ->title('Generando Tarea')
-                                        ->body('La generación ha comenzado. Esto puede tardar un momento. Se te notificará cuando esté lista.')
-                                        ->info()
-                                        ->send();
 
-                                    // Dispatch the job
-                                    GenerateReadingTask::dispatch($age, $topic, $userId);
+                                    // Perform synchronous task generation
+                                    try {
+                                        $ollamaService = app(OllamaService::class); // Resolve OllamaService
+                                        $taskData = $ollamaService->generateTask($age, $topic);
+
+                                        if ($taskData) {
+                                            $livewire->form->fill([
+                                                'name' => "Tarea de Comprensión Lectora: " . ($taskData['topic'] ?? $topic), // Use generated topic or original
+                                                'description' => $taskData['text'],
+                                                'questions' => array_map(function ($q) {
+                                                    return [
+                                                        'question' => $q['question'],
+                                                        'alternatives' => array_map(fn($alt) => ['alternative' => $alt], $q['alternatives']),
+                                                        'correct_answer' => $q['correct_answer'],
+                                                    ];
+                                                }, $taskData['questions']),
+                                            ]);
+
+                                            \Filament\Notifications\Notification::make()
+                                                ->title('Tarea Generada')
+                                                ->body('El texto y las preguntas se han generado y rellenado en el formulario.')
+                                                ->success()
+                                                ->send();
+                                        } else {
+                                            \Filament\Notifications\Notification::make()
+                                                ->title('Error de Generación')
+                                                ->body('No se pudo generar la tarea. Inténtalo de nuevo.')
+                                                ->danger()
+                                                ->send();
+                                        }
+                                    } catch (\Exception $e) {
+                                        \Filament\Notifications\Notification::make()
+                                            ->title('Error Inesperado')
+                                            ->body('Ocurrió un error al generar la tarea: ' . $e->getMessage())
+                                            ->danger()
+                                            ->send();
+                                        \Log::error('Synchronous task generation error: ' . $e->getMessage());
+                                    } finally {
+                                        $livewire->isGenerating = false;
+                                    }
                                 })
                                 ->visible(fn (Forms\Get $get) => filled($get('selected_topic')) || filled($get('custom_topic')))
                                 ->disabled(fn (\Livewire\Component $livewire) => $livewire->isGenerating ?? false),
@@ -211,12 +245,64 @@ class CompresionLectoraResource extends Resource
                     ->getStateUsing(fn (Task $record): string => number_format($record->completion_percentage, 0) . '%')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Fecha de Creación')
                     ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('completion_status')
+                    ->label('Estado de Completitud')
+                    ->options([
+                        'all' => 'Todas',
+                        'completed' => 'Completadas (100%)',
+                        'not_started' => 'No Iniciadas (0%)',
+                        'in_progress' => 'En Progreso',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        // Get the total count of 'hijo' users once, as it's constant for all tasks.
+                        $totalChildren = \App\Models\User::role('hijo')->count();
+
+                        // Handle cases where there are no 'hijo' users to avoid division by zero or incorrect logic.
+                        // If no children, no tasks can be truly 'completed' or 'in progress' by children.
+                        if ($totalChildren === 0) {
+                            if ($data['value'] === 'completed' || $data['value'] === 'in_progress') {
+                                // No tasks can be completed or in progress if there are no children,
+                                // so return a query that yields no results.
+                                return $query->whereRaw('0 = 1');
+                            } elseif ($data['value'] === 'not_started') {
+                                // If no children, all tasks are effectively 'not started' by children.
+                                return $query; // No additional filtering needed
+                            }
+                            return $query; // For 'all' or if value is empty
+                        }
+
+                        if ($data['value'] === 'completed') {
+                            // Filter for tasks where all 'hijo' users have a completed record.
+                            // This involves joining task_completions and counting distinct completed children.
+                            $query->whereHas('completions', function (Builder $q) use ($totalChildren) {
+                                $q->whereNotNull('completed_at')
+                                  ->selectRaw('count(DISTINCT user_id) as completed_count')
+                                  ->havingRaw('completed_count = ?', [$totalChildren]);
+                            });
+                        } elseif ($data['value'] === 'not_started') {
+                            // Filter for tasks that have no completion records at all.
+                            $query->whereDoesntHave('completions');
+                        } elseif ($data['value'] === 'in_progress') {
+                            // Filter for tasks with some completed records, but not all.
+                            // First, ensure there's at least one completion record.
+                            $query->whereHas('completions', function (Builder $q) {
+                                $q->whereNotNull('completed_at');
+                            });
+                            // Then, ensure the count of completed records is less than the total children count.
+                            $query->whereHas('completions', function (Builder $q) use ($totalChildren) {
+                                $q->whereNotNull('completed_at')
+                                  ->selectRaw('count(DISTINCT user_id) as completed_count')
+                                  ->havingRaw('completed_count < ?', [$totalChildren]);
+                            });
+                        }
+
+                        return $query;
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

@@ -30,7 +30,7 @@ class OllamaService
     {
         $model = $model ?? $this->model; // Use provided model or default
 
-        $response = Http::timeout(180)->post("{$this->baseUrl}/api/chat", [ // Ollama chat endpoint
+        $response = Http::timeout(300)->post("{$this->baseUrl}/api/chat", [ // Ollama chat endpoint
             'model' => $model,
             'messages' => $messages,
             'options' => [

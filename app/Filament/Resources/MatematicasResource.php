@@ -243,12 +243,54 @@ class MatematicasResource extends Resource
                     ->getStateUsing(fn (Task $record): string => number_format($record->completion_percentage, 0) . '%')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label('Fecha de Creación') // Translated label
                     ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->sortable(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('completion_status')
+                    ->label('Estado de Completitud')
+                    ->options([
+                        'all' => 'Todas',
+                        'completed' => 'Completadas (100%)',
+                        'not_started' => 'No Iniciadas (0%)',
+                        'in_progress' => 'En Progreso',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        // Get the total count of 'hijo' users once, as it's constant for all tasks.
+                        $totalChildren = \App\Models\User::role('hijo')->count();
+
+                        // Handle cases where there are no 'hijo' users to avoid division by zero or incorrect logic.
+                        if ($totalChildren === 0) {
+                            if ($data['value'] === 'completed' || $data['value'] === 'in_progress') {
+                                return $query->whereRaw('0 = 1'); // Yields no results
+                            } elseif ($data['value'] === 'not_started') {
+                                return $query; // No additional filtering needed
+                            }
+                            return $query; // For 'all' or if value is empty
+                        }
+
+                        if ($data['value'] === 'completed') {
+                            $query->whereHas('completions', function (Builder $q) use ($totalChildren) {
+                                $q->whereNotNull('completed_at')
+                                  ->selectRaw('count(DISTINCT user_id) as completed_count')
+                                  ->havingRaw('completed_count = ?', [$totalChildren]);
+                            });
+                        } elseif ($data['value'] === 'not_started') {
+                            $query->whereDoesntHave('completions');
+                        } elseif ($data['value'] === 'in_progress') {
+                            $query->whereHas('completions', function (Builder $q) {
+                                $q->whereNotNull('completed_at');
+                            });
+                            $query->whereHas('completions', function (Builder $q) use ($totalChildren) {
+                                $q->whereNotNull('completed_at')
+                                  ->selectRaw('count(DISTINCT user_id) as completed_count')
+                                  ->havingRaw('completed_count < ?', [$totalChildren]);
+                            });
+                        }
+
+                        return $query;
+                    }),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -257,7 +299,8 @@ class MatematicasResource extends Resource
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
-            ]);
+            ])
+            ->defaultSort('created_at', 'desc'); // Default sort by created_at desc
     }
 
     public static function getRelations(): array

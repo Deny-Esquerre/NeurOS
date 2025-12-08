@@ -16,6 +16,8 @@ class GenerateReadingTask implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $timeout = 300; // Set timeout to 5 minutes
+
     protected $age;
     protected $topic;
     protected $userId;
