@@ -49,7 +49,14 @@ class CompresionLectoraResource extends Resource
                             ->afterStateUpdated(function (Forms\Set $set) {
                                 $set('topics', null); // Clear topics when age changes
                                 $set('selected_topic', null); // Clear selected topic
+                                $set('custom_topic', null); // Clear custom topic
                             }),
+
+                        Forms\Components\TextInput::make('custom_topic')
+                            ->label('Opcional: Especificar un Tema')
+                            ->placeholder('Ej. "Los planetas del sistema solar"')
+                            ->live()
+                            ->visible(fn (Forms\Get $get) => filled($get('age'))),
 
                         Forms\Components\Actions::make([
                             Forms\Components\Actions\Action::make('generate_topics')
@@ -84,7 +91,7 @@ class CompresionLectoraResource extends Resource
                                             ->send();
                                     }
                                 })
-                                ->visible(fn (Forms\Get $get) => filled($get('age'))),
+                                ->visible(fn (Forms\Get $get) => filled($get('age')) && blank($get('custom_topic'))),
                         ])->columnSpanFull(),
 
                         Forms\Components\Select::make('selected_topic')
@@ -93,7 +100,7 @@ class CompresionLectoraResource extends Resource
                             ->searchable()
                             ->preload()
                             ->live()
-                            ->visible(fn (Forms\Get $get) => filled($get('topics'))),
+                            ->visible(fn (Forms\Get $get) => filled($get('topics')) && blank($get('custom_topic'))),
 
                         Forms\Components\Actions::make([
                             Forms\Components\Actions\Action::make('generate_task')
@@ -103,12 +110,12 @@ class CompresionLectoraResource extends Resource
                                 ->action(function (Forms\Get $get, Forms\Set $set, OllamaService $ollamaService) {
                                     set_time_limit(300); // Increase execution time for AI task generation
                                     $age = $get('age');
-                                    $topic = $get('selected_topic');
+                                    $topic = $get('custom_topic') ?: $get('selected_topic');
 
                                     if (!$age || !$topic) {
                                         \Filament\Notifications\Notification::make()
                                             ->title('Error')
-                                            ->body('Por favor, selecciona una edad y un tema primero.')
+                                            ->body('Por favor, selecciona o especifica un tema y una edad.')
                                             ->danger()
                                             ->send();
                                         return;
@@ -142,7 +149,7 @@ class CompresionLectoraResource extends Resource
                                             ->send();
                                     }
                                 })
-                                ->visible(fn (Forms\Get $get) => filled($get('selected_topic'))),
+                                ->visible(fn (Forms\Get $get) => filled($get('selected_topic')) || filled($get('custom_topic'))),
                         ])->columnSpanFull(),
                     ]),
 
