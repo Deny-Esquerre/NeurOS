@@ -3,14 +3,16 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CompresionLectoraResource\Pages;
+use App\Jobs\GenerateReadingTask;
 use App\Models\Task;
+use App\Services\OllamaService;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use App\Services\OllamaService;
+use Illuminate\Support\Facades\Auth;
 
 class CompresionLectoraResource extends Resource
 {
@@ -27,7 +29,7 @@ class CompresionLectoraResource extends Resource
         return parent::getEloquentQuery()->where('category', 'compresion_lectora');
     }
 
-    public static function form(Form $form): Form
+        public static function form(Form $form): Form
     {
         return $form
             ->schema([
@@ -107,10 +109,10 @@ class CompresionLectoraResource extends Resource
                                 ->label('Generar Tarea')
                                 ->icon('heroicon-o-document-text')
                                 ->color('success')
-                                ->action(function (Forms\Get $get, Forms\Set $set, OllamaService $ollamaService) {
-                                    set_time_limit(300); // Increase execution time for AI task generation
+                                ->action(function (Forms\Get $get, \Livewire\Component $livewire) {
                                     $age = $get('age');
                                     $topic = $get('custom_topic') ?: $get('selected_topic');
+                                    $userId = Auth::id();
 
                                     if (!$age || !$topic) {
                                         \Filament\Notifications\Notification::make()
@@ -121,35 +123,19 @@ class CompresionLectoraResource extends Resource
                                         return;
                                     }
 
-                                    $taskData = $ollamaService->generateTask($age, $topic);
+                                    // Set generating state and show notification
+                                    $livewire->isGenerating = true;
+                                    \Filament\Notifications\Notification::make()
+                                        ->title('Generando Tarea')
+                                        ->body('La generación ha comenzado. Esto puede tardar un momento. Se te notificará cuando esté lista.')
+                                        ->info()
+                                        ->send();
 
-                                    if ($taskData) {
-                                        $set('name', "Tarea de Comprensión Lectora: " . $topic);
-                                        $set('description', $taskData['text']);
-                                        // Map questions to the repeater structure
-                                        $formattedQuestions = [];
-                                        foreach ($taskData['questions'] as $q) {
-                                            $formattedQuestions[] = [
-                                                'question' => $q['question'],
-                                                'alternatives' => array_map(fn($alt) => ['alternative' => $alt], $q['alternatives']),
-                                                'correct_answer' => $q['correct_answer'],
-                                            ];
-                                        }
-                                        $set('questions', $formattedQuestions);
-                                        \Filament\Notifications\Notification::make()
-                                            ->title('Tarea Generada')
-                                            ->body('El texto y las preguntas se han generado y rellenado en el formulario.')
-                                            ->success()
-                                            ->send();
-                                    } else {
-                                        \Filament\Notifications\Notification::make()
-                                            ->title('Error')
-                                            ->body('No se pudo generar la tarea. Inténtalo de nuevo.')
-                                            ->danger()
-                                            ->send();
-                                    }
+                                    // Dispatch the job
+                                    GenerateReadingTask::dispatch($age, $topic, $userId);
                                 })
-                                ->visible(fn (Forms\Get $get) => filled($get('selected_topic')) || filled($get('custom_topic'))),
+                                ->visible(fn (Forms\Get $get) => filled($get('selected_topic')) || filled($get('custom_topic')))
+                                ->disabled(fn (\Livewire\Component $livewire) => $livewire->isGenerating ?? false),
                         ])->columnSpanFull(),
                     ]),
 
