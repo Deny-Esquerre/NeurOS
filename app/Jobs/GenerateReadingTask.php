@@ -21,17 +21,19 @@ class GenerateReadingTask implements ShouldQueue
     protected $age;
     protected $topic;
     protected $userId;
+    protected $customPrompt; // Added
 
     /**
      * Create a new job instance.
      *
      * @return void
      */
-    public function __construct($age, $topic, $userId)
+    public function __construct($age, $topic, $userId, $customPrompt = null) // Modified
     {
         $this->age = $age;
         $this->topic = $topic;
         $this->userId = $userId;
+        $this->customPrompt = $customPrompt; // Added
     }
 
     /**
@@ -42,7 +44,7 @@ class GenerateReadingTask implements ShouldQueue
     public function handle(OllamaService $ollamaService)
     {
         try {
-            $taskData = $ollamaService->generateTask($this->age, $this->topic);
+            $taskData = $ollamaService->generateTask($this->age, $this->topic, $this->customPrompt); // Modified
 
             if ($taskData) {
                 // Fire an event to notify the user that the task is ready

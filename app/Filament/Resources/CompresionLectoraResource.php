@@ -3,7 +3,6 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\CompresionLectoraResource\Pages;
-use App\Jobs\GenerateReadingTask;
 use App\Models\Task;
 use App\Services\OllamaService;
 use Filament\Forms;
@@ -180,14 +179,17 @@ class CompresionLectoraResource extends Resource
                                             ->danger()
                                             ->send();
                                         \Log::error('Synchronous task generation generic error: ' . $e->getMessage());
-                                                                        } finally {
-                                                                            $livewire->isGenerating = false;
-                                                                        }
-                                                                            }) // This closes the action closure, and then the Action::make()
-                                                                            ->visible(fn (Forms\Get $get) => filled($get('selected_topic')) || filled($get('custom_topic')))
-                                                                            ->disabled(fn (\Livewire\Component $livewire) => $livewire->isGenerating ?? false),
+                                    } finally {
+                                        $livewire->isGenerating = false;
+                                    }
+                                }) // This closes the action closure.
+                                ->visible(fn (Forms\Get $get) => filled($get('selected_topic')) || filled($get('custom_topic')))
+                                ->disabled(fn (\Livewire\Component $livewire) => $livewire->isGenerating ?? false),
                                                                 ])->columnSpanFull(),
                     ]), // Cierre del schema de la Sección
+
+
+
                 Forms\Components\TextInput::make('name')
                     ->label('Título de la Tarea')
                     ->required()
