@@ -38,7 +38,7 @@ class BluetoothScanner extends Component
             $this->devices[] = $device;
         }
         
-        $this->scanActive = false; // Scan is complete after a device is selected
+        // $this->scanActive = false; // Removed: Scan active state is managed by JavaScript's success/failure
     }
 
     // This method will be called from JavaScript when a device is connected
