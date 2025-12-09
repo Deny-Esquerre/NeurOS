@@ -39,28 +39,26 @@
                         <table class="fi-ta-table w-full table-auto divide-y divide-gray-200 text-start dark:divide-white/5">
                             <thead class="bg-gray-50 dark:bg-white/5">
                                 <tr class="fi-ta-header-row">
-                                    <th class="fi-ta-header-cell px-3 py-2 text-sm font-medium text-gray-900 dark:text-white text-left">
-                                        Dispositivo
-                                    </th>
-                                    <th class="fi-ta-header-cell px-3 py-2 text-sm font-medium text-gray-900 dark:text-white text-left">
-                                        ID
-                                    </th>
-                                    <th class="fi-ta-header-cell px-3 py-2 text-sm font-medium text-gray-900 dark:text-white text-end">
-                                        Acción
-                                    </th>
-                                </tr>
+                                                                <th class="fi-ta-header-cell px-3 py-2 text-sm font-medium text-gray-900 dark:text-white text-left">
+                                                                    Dispositivo
+                                                                </th>
+                                                                <th class="fi-ta-header-cell px-3 py-2 text-sm font-medium text-gray-900 dark:text-white text-left hidden md:table-cell"> {{-- Hidden on small screens --}}
+                                                                    ID
+                                                                </th>
+                                                                <th class="fi-ta-header-cell px-3 py-2 text-sm font-medium text-gray-900 dark:text-white text-end">
+                                                                    Acción
+                                                                </th>                                </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 dark:divide-white/5">
                                 @foreach ($devices as $device)
                                     <tr class="fi-ta-row">
-                                        <td class="fi-ta-cell p-3">
-                                            <span class="font-medium">{{ $device['name'] ?? 'Dispositivo Desconocido' }}</span>
-                                        </td>
-                                        <td class="fi-ta-cell p-3 text-xs text-gray-500 dark:text-gray-400">
-                                            {{ $device['id'] }}
-                                        </td>
-                                        <td class="fi-ta-cell p-3 text-end" x-data="{}">
-                                            <x-filament::button
+                                                                        <td class="fi-ta-cell p-3">
+                                                                            <span class="font-medium">{{ $device['name'] ?? 'Dispositivo Desconocido' }}</span>
+                                                                        </td>
+                                                                        <td class="fi-ta-cell p-3 text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell"> {{-- Hidden on small screens --}}
+                                                                            {{ $device['id'] }}
+                                                                        </td>
+                                                                        <td class="fi-ta-cell p-3 text-end" x-data="{}">                                            <x-filament::button
                                                 color="warning"
                                                 size="sm"
                                                 x-on:click="connectToDevice('{{ $device['id'] }}')"
